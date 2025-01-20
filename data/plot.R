@@ -28,3 +28,6 @@ data %>%
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1)) +  # Roterer teksten 45 grader
   scale_y_continuous(breaks = c(1,2,3,4,5))
+
+
+print("hallo")

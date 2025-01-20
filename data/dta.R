@@ -97,4 +97,4 @@ data <- reduce(dataset, full_join, by="year")
 
 saveRDS(data, "data.rds")
 
-
+print("hallo")
