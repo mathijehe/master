@@ -51,4 +51,4 @@ results <- bind_rows(
   tidy(t_test_gdp) %>% mutate(variable = "BNP"),
   tidy(t_test_unemployment) %>% mutate(variable = "Arbeidsledighet")
 )
-hei jeg heter lasse
+
