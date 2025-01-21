@@ -1,6 +1,13 @@
 library(readxl)
 library(tidyverse)
-bnp_vekst <- read_excel("~/Downloads/09189_20250114-141213.xlsx")
+
+if (!file.exists("data/my_data.rds")) {
+  bnp_vekst <-read_excel("~/Downloads/09189_20250114-141213.xlsx")
+  saveRDS(bnp_vekst, "data/my_data.rds")
+}
+
+
+#bnp_vekst <- read_excel("~/Downloads/09189_20250114-141213.xlsx")
 
 bnp_vekst <- bnp_vekst %>% 
   select("year"="...2", "BNP"="...5", "BNP fastlands Norge"="...6") %>% 
