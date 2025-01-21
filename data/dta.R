@@ -89,12 +89,29 @@ regjering <- read_excel("~/Desktop/data-regjering.xlsx")
 
 regjering$year <- as.numeric(regjering$year)  
 
+bnp_kvartal <- read_excel("~/Downloads/09190_20250121-112748.xlsx", 
+                          col_names = FALSE)
+
+bnp_kvartal <-  bnp_kvartal %>% 
+  slice(4:n())
+ 
+bnp_kvartal[is.na(bnp_kvartal)] <- "year"
+colnames(bnp_kvartal) <- bnp_kvartal[1, ]  
+bnp_kvartal <-  bnp_kvartal %>% 
+  slice(3:n()) %>% 
+  slice(1:(n() - 58)) %>% 
+  separate(year, into = c("year", "kvartal"), sep = "K") %>% 
+  mutate(across(everything(), as.numeric))
+
 
 dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
                 bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering)
-
 data <- reduce(dataset, full_join, by="year")
 
-saveRDS(data, "data.rds")
 
+dataset2 <-  list(bnp_kvartal,regjering)
+data2 <-  reduce(dataset2, full_join, by="year")
+
+saveRDS(data, "data.rds")
+saveRDS(data2, "data2.rds")
 

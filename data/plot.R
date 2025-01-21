@@ -1,5 +1,5 @@
 data <- readRDS("data.rds")
-
+data2 <- readRDS("data2.rds")
 library(tidyverse)
 library(ggthemes)
 library(broom)
