@@ -1,45 +1,57 @@
 library(readxl)
 library(tidyverse)
 
-if (!file.exists("data/my_data.rds")) {
-  bnp_vekst <-read_excel("~/Downloads/09189_20250114-141213.xlsx")
-  saveRDS(bnp_vekst, "data/my_data.rds")
-}
-
 
 #bnp_vekst <- read_excel("~/Downloads/09189_20250114-141213.xlsx")
-
+saveRDS(bnp_vekst, "bnp_vekst.rds")
+bnp_vekst <- readRDS("bnp_vekst.rds")
 bnp_vekst <- bnp_vekst %>% 
   select("year"="...2", "BNP"="...5", "BNP fastlands Norge"="...6") %>% 
   drop_na()%>% 
   mutate(across(everything(), as.numeric))
 
-inflasjon <- read_excel("~/Downloads/03014_20250114-143534.xlsx",
-                        col_names = FALSE)
+
+#inflasjon <- read_excel("~/Downloads/03014_20250114-143534.xlsx",
+                        #col_names = FALSE)
+
+saveRDS(inflasjon, "inflasjon.rds")
+inflasjon <- readRDS("inflasjon.rds")
 
 inflasjon <- inflasjon %>% 
   select("year"="...1", "inflasjonsvekst"="...2") %>% 
   drop_na()%>% 
   mutate(across(everything(), as.numeric))
 
-produktivitet <- read_excel("~/Downloads/09170_20250114-144926.xlsx", 
-                            col_names = FALSE)
+
+#produktivitet <- read_excel("~/Downloads/09170_20250114-144926.xlsx", 
+       #                     col_names = FALSE)
+saveRDS(produktivitet, "produktivitet.rds")
+produktivitet <- readRDS("produktivitet.rds")
 
 produktivitet <- produktivitet %>% 
   select("year"="...2", "produktivitet"="...3") %>% 
   drop_na()%>% 
   mutate(across(everything(), as.numeric))
 
-abreidsledighet <- read_excel("~/Downloads/08517_20250114-145811.xlsx", 
-                              col_names = FALSE)
+
+
+#abreidsledighet <- read_excel("~/Downloads/08517_20250114-145811.xlsx", 
+    #                          col_names = FALSE)
+saveRDS(abreidsledighet, "abreidsledighet.rds")
+abreidsledighet <- readRDS("abreidsledighet.rds")
 
 abreidsledighet <- abreidsledighet %>% 
   select("year"="...2", "arbeidsledighet"="...3") %>% 
   drop_na()%>% 
   mutate(across(everything(), as.numeric))
 
-bnp_predeksjoner <- read_excel("~/Downloads/12880_20250114-150706.xlsx", 
-                               col_names = FALSE)
+
+
+#bnp_predeksjoner <- read_excel("~/Downloads/12880_20250114-150706.xlsx", 
+ #                              col_names = FALSE)
+saveRDS(bnp_predeksjoner, "bnp_predeksjoner.rds")
+bnp_predeksjoner <- readRDS("bnp_predeksjoner.rds")
+
 bnp_predeksjoner <- bnp_predeksjoner %>% 
   select("year"="...1","BNP_pred"="...2","BNP_fastland_pred"="...3") %>% 
   drop_na() %>% 
@@ -48,8 +60,11 @@ bnp_predeksjoner <- bnp_predeksjoner %>%
 
 
 
-handelsbalanse <- read_excel("~/Downloads/08792_20250115-114601.xlsx", 
-                             col_names = FALSE)
+#handelsbalanse <- read_excel("~/Downloads/08792_20250115-114601.xlsx", 
+                  #           col_names = FALSE)
+
+saveRDS(handelsbalanse, "handelsbalanse.rds")
+handelsbalanse <- readRDS("handelsbalanse.rds")
 
 handelsbalanse <- handelsbalanse %>% 
   select("year"="...1", "import"="...2", "eksport"="...3") %>% 
@@ -62,8 +77,13 @@ handelsbalanse <- handelsbalanse %>%
     eksport = sum(eksport, na.rm = TRUE)) %>% 
   mutate("handelbalanse"=(eksport-import))
 
-bnp_utland <- read_excel("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2.xlsx", 
-                         col_names = FALSE)
+
+
+#bnp_utland <- read_excel("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2.xlsx", 
+    #                     col_names = FALSE)
+
+saveRDS(bnp_utland, "bnp_utland.rds")
+bnp_utland <- readRDS("bnp_utland.rds")
 
 bnp_utland <- bnp_utland %>% 
   select("year"="...3","Euro_erea"="...5","USA"="...6", "Sweden"="...7") %>% 
@@ -74,7 +94,10 @@ bnp_utland <- bnp_utland %>%
          Euro_erea = round(Euro_erea,1))
 
 
-oil <- read_csv("~/Downloads/Brent Oil Futures Historical Data.csv")
+
+#oil <- read_csv("~/Downloads/Brent Oil Futures Historical Data.csv")
+saveRDS(oil, "oil.rds")
+oil <- readRDS("oil.rds")
 
 oil <- oil %>%
   mutate(growth = str_remove(`Change %`, "%"),  
@@ -92,12 +115,16 @@ oil1 <- oil %>%
   select(year, Price)
 
 
-regjering <- read_excel("~/Desktop/data-regjering.xlsx")
+#regjering <- read_excel("~/Desktop/data-regjering.xlsx")
+saveRDS(regjering, "regjering.rds")
+regjering <- readRDS("regjering.rds")
 
 regjering$year <- as.numeric(regjering$year)  
 
-bnp_kvartal <- read_excel("~/Downloads/09190_20250121-112748.xlsx", 
-                          col_names = FALSE)
+#bnp_kvartal <- read_excel("~/Downloads/09190_20250121-112748.xlsx", 
+ #                         col_names = FALSE)
+saveRDS(bnp_kvartal, "bnp_kvartal.rds")
+bnp_kvartal <- readRDS("bnp_kvartal.rds")
 
 bnp_kvartal <-  bnp_kvartal %>% 
   slice(4:n())
