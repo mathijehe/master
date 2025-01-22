@@ -142,6 +142,18 @@ dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
                 bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering)
 data <- reduce(dataset, full_join, by="year")
 
+#bnp_capita <- read_csv("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2/9d5b2de6-efe2-4ae2-915c-933706c14c5d_Data.csv")
+saveRDS(bnp_capita, "bnp_capita.rds")
+bnp_capita <- readRDS("bnp_capita.rds")
+
+bnp_capita <-  bnp_capita %>% 
+  select("year"="Time", "norway"="Norway [NOR]","EU"="Euro area [EMU]", "USA"="United States [USA]", "sweden"="Sweden [SWE]" ) %>% 
+  mutate(across(everything(), as.numeric)) %>% 
+  drop_na() %>% 
+  mutate(USA = round(USA, 1),
+         sweden = round(sweden,1),
+         EU = round(EU,1),
+         norway = round(norway,1))
 
 dataset2 <-  list(bnp_kvartal,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
