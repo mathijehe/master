@@ -138,9 +138,7 @@ bnp_kvartal <-  bnp_kvartal %>%
   mutate(across(everything(), as.numeric))
 
 
-dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
-                bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering)
-data <- reduce(dataset, full_join, by="year")
+
 
 #bnp_capita <- read_csv("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2/9d5b2de6-efe2-4ae2-915c-933706c14c5d_Data.csv")
 saveRDS(bnp_capita, "bnp_capita.rds")
@@ -154,6 +152,27 @@ bnp_capita <-  bnp_capita %>%
          sweden = round(sweden,1),
          EU = round(EU,1),
          norway = round(norway,1))
+
+#sysselsatte <- read_excel("~/Downloads/05111_20250122-123248.xlsx", 
+                      #    col_names = FALSE)
+
+saveRDS(sysselsatte, "sysselsatte.rds")
+sysselsatte <- readRDS("sysselsatte.rds")
+
+sysselsatte <- sysselsatte %>% 
+  select("year"="...1", "arbeidstyrke"="...2", "sysselsatte"="...3") %>% 
+  slice(7:n()) %>% 
+  slice(1:(n() - 54)) %>% 
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(syssel= (arbeidstyrke-sysselsatte)) %>% 
+  mutate(sysselsettning_endring = (lag(syssel)-syssel)/syssel) %>% 
+  mutate(sysselsettning_endring = round(sysselsettning_endring, 1)) %>% 
+  select(year, sysselsettning_endring)
+
+dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
+                bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering, sysselsettning_endring)
+data <- reduce(dataset, full_join, by="year")
+
 
 dataset2 <-  list(bnp_kvartal,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
