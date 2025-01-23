@@ -43,8 +43,8 @@ abreidsledighet <- readRDS("abreidsledighet.rds")
 abreidsledighet <- abreidsledighet %>% 
   select("year"="...2", "arbeidsledighet"="...3") %>% 
   drop_na()%>% 
-  mutate(across(everything(), as.numeric))
-
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(arbeidsledighet_endring = lag(arbeidsledighet) - arbeidsledighet)
 
 
 #bnp_predeksjoner <- read_excel("~/Downloads/12880_20250114-150706.xlsx", 
@@ -169,9 +169,28 @@ sysselsatte <- sysselsatte %>%
   mutate(sysselsettning_endring = round(sysselsettning_endring, 1)) %>% 
   select(year, sysselsettning_endring)
 
+#vderiskapning_sektor <- read_excel("~/Downloads/09170_20250123-102730.xlsx", 
+ #                                  col_names = FALSE)
+saveRDS(vderiskapning_sektor, "vderiskapning_sektor.rds")
+vderiskapning_sektor <- readRDS("vderiskapning_sektor.rds")
+
+vderiskapning_sektor <-  vderiskapning_sektor %>% 
+  slice(4:n()) %>%
+  slice(1:(n() - 49)) %>% 
+  mutate(across(everything(), ~ifelse(is.na(.), "year", .)))
+colnames(vderiskapning_sektor) <- vderiskapning_sektor[1, ] 
+vderiskapning_sektor <-  vderiskapning_sektor %>% 
+  mutate(across(everything(), as.numeric)) %>% 
+  slice(5:n())
+
+
+
+
 dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
                 bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering, sysselsettning_endring)
 data <- reduce(dataset, full_join, by="year")
+
+
 
 
 dataset2 <-  list(bnp_kvartal,regjering)
