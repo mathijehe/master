@@ -3,7 +3,7 @@ library(tidyverse)
 
 
 #bnp_vekst <- read_excel("~/Downloads/09189_20250114-141213.xlsx")
-saveRDS(bnp_vekst, "bnp_vekst.rds")
+#saveRDS(bnp_vekst, "bnp_vekst.rds")
 bnp_vekst <- readRDS("bnp_vekst.rds")
 bnp_vekst <- bnp_vekst %>% 
   select("year"="...2", "BNP"="...5", "BNP fastlands Norge"="...6") %>% 
@@ -14,7 +14,7 @@ bnp_vekst <- bnp_vekst %>%
 #inflasjon <- read_excel("~/Downloads/03014_20250114-143534.xlsx",
                         #col_names = FALSE)
 
-saveRDS(inflasjon, "inflasjon.rds")
+#saveRDS(inflasjon, "inflasjon.rds")
 inflasjon <- readRDS("inflasjon.rds")
 
 inflasjon <- inflasjon %>% 
@@ -25,7 +25,7 @@ inflasjon <- inflasjon %>%
 
 #produktivitet <- read_excel("~/Downloads/09170_20250114-144926.xlsx", 
        #                     col_names = FALSE)
-saveRDS(produktivitet, "produktivitet.rds")
+#saveRDS(produktivitet, "produktivitet.rds")
 produktivitet <- readRDS("produktivitet.rds")
 
 produktivitet <- produktivitet %>% 
@@ -37,7 +37,7 @@ produktivitet <- produktivitet %>%
 
 #abreidsledighet <- read_excel("~/Downloads/08517_20250114-145811.xlsx", 
     #                          col_names = FALSE)
-saveRDS(abreidsledighet, "abreidsledighet.rds")
+#saveRDS(abreidsledighet, "abreidsledighet.rds")
 abreidsledighet <- readRDS("abreidsledighet.rds")
 
 abreidsledighet <- abreidsledighet %>% 
@@ -49,7 +49,7 @@ abreidsledighet <- abreidsledighet %>%
 
 #bnp_predeksjoner <- read_excel("~/Downloads/12880_20250114-150706.xlsx", 
  #                              col_names = FALSE)
-saveRDS(bnp_predeksjoner, "bnp_predeksjoner.rds")
+#saveRDS(bnp_predeksjoner, "bnp_predeksjoner.rds")
 bnp_predeksjoner <- readRDS("bnp_predeksjoner.rds")
 
 bnp_predeksjoner <- bnp_predeksjoner %>% 
@@ -63,7 +63,7 @@ bnp_predeksjoner <- bnp_predeksjoner %>%
 #handelsbalanse <- read_excel("~/Downloads/08792_20250115-114601.xlsx", 
                   #           col_names = FALSE)
 
-saveRDS(handelsbalanse, "handelsbalanse.rds")
+#saveRDS(handelsbalanse, "handelsbalanse.rds")
 handelsbalanse <- readRDS("handelsbalanse.rds")
 
 handelsbalanse <- handelsbalanse %>% 
@@ -82,7 +82,7 @@ handelsbalanse <- handelsbalanse %>%
 #bnp_utland <- read_excel("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2.xlsx", 
     #                     col_names = FALSE)
 
-saveRDS(bnp_utland, "bnp_utland.rds")
+#saveRDS(bnp_utland, "bnp_utland.rds")
 bnp_utland <- readRDS("bnp_utland.rds")
 
 bnp_utland <- bnp_utland %>% 
@@ -96,7 +96,7 @@ bnp_utland <- bnp_utland %>%
 
 
 #oil <- read_csv("~/Downloads/Brent Oil Futures Historical Data.csv")
-saveRDS(oil, "oil.rds")
+#saveRDS(oil, "oil.rds")
 oil <- readRDS("oil.rds")
 
 oil <- oil %>%
@@ -116,14 +116,14 @@ oil1 <- oil %>%
 
 
 #regjering <- read_excel("~/Desktop/data-regjering.xlsx")
-saveRDS(regjering, "regjering.rds")
+#saveRDS(regjering, "regjering.rds")
 regjering <- readRDS("regjering.rds")
 
 regjering$year <- as.numeric(regjering$year)  
 
 #bnp_kvartal <- read_excel("~/Downloads/09190_20250121-112748.xlsx", 
  #                         col_names = FALSE)
-saveRDS(bnp_kvartal, "bnp_kvartal.rds")
+#saveRDS(bnp_kvartal, "bnp_kvartal.rds")
 bnp_kvartal <- readRDS("bnp_kvartal.rds")
 
 bnp_kvartal <-  bnp_kvartal %>% 
@@ -141,7 +141,7 @@ bnp_kvartal <-  bnp_kvartal %>%
 
 
 #bnp_capita <- read_csv("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2/9d5b2de6-efe2-4ae2-915c-933706c14c5d_Data.csv")
-saveRDS(bnp_capita, "bnp_capita.rds")
+#saveRDS(bnp_capita, "bnp_capita.rds")
 bnp_capita <- readRDS("bnp_capita.rds")
 
 bnp_capita <-  bnp_capita %>% 
@@ -156,7 +156,7 @@ bnp_capita <-  bnp_capita %>%
 #sysselsatte <- read_excel("~/Downloads/05111_20250122-123248.xlsx", 
                       #    col_names = FALSE)
 
-saveRDS(sysselsatte, "sysselsatte.rds")
+#saveRDS(sysselsatte, "sysselsatte.rds")
 sysselsatte <- readRDS("sysselsatte.rds")
 
 sysselsatte <- sysselsatte %>% 
@@ -171,7 +171,7 @@ sysselsatte <- sysselsatte %>%
 
 #vderiskapning_sektor <- read_excel("~/Downloads/09170_20250123-102730.xlsx", 
  #                                  col_names = FALSE)
-saveRDS(vderiskapning_sektor, "vderiskapning_sektor.rds")
+#saveRDS(vderiskapning_sektor, "vderiskapning_sektor.rds")
 vderiskapning_sektor <- readRDS("vderiskapning_sektor.rds")
 
 vderiskapning_sektor <-  vderiskapning_sektor %>% 
@@ -185,9 +185,38 @@ vderiskapning_sektor <-  vderiskapning_sektor %>%
 
 
 
+#styringsrente <- read_delim("~/Downloads/IR (1).csv", 
+      #                 delim = ";", escape_double = FALSE, trim_ws = TRUE)
+#saveRDS(styringsrente, "styringsrente.rds")
+styringsrente <- readRDS("styringsrente.rds")
+
+styringsrente <-  styringsrente %>% 
+  select("year"="TIME_PERIOD", "STYRINGSRENTE"=OBS_VALUE) %>% 
+  mutate(across(everything(), ~as.numeric(gsub(",", ".", .)))) %>% 
+  slice(3:n()) %>% 
+  slice(1:(n() - 43))
+
+
+#styringsrente2 <- read_excel("~/Downloads/IR.xlsx")
+
+#saveRDS(styringsrente2, "styringsrente2.rds")
+styringsrente2 <- readRDS("styringsrente2.rds")
+
+styringsrente2 <-  styringsrente2 %>% 
+  select("year"="FREQ", "STYRINGSRENTE"="A") %>% 
+  slice(5:n()) %>%
+  mutate(across(everything(), as.numeric)) %>% 
+  slice(1:(n() - 32))
+
+styringsrente <- list(styringsrente, styringsrente2)
+styringsrente <-  reduce(styringsrente, full_join, by=c("STYRINGSRENTE", "year"))
+
+styringsrente <- styringsrente %>% 
+  arrange(year)
 
 dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
-                bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering, sysselsettning_endring)
+                bnp_predeksjoner, bnp_utland, handelsbalanse, oil1, regjering,
+                sysselsatte,styringsrente)
 data <- reduce(dataset, full_join, by="year")
 
 
