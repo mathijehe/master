@@ -237,7 +237,8 @@ næring <- næring %>%
 dataset2 <-  list(bnp_kvartal,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
 
-dataset3 <-  list(bnp_capita,regjering, næring)
+dataset3 <-  list(bnp_capita,regjering, næring, abreidsledighet, sysselsatte,
+                  handelsbalanse,inflasjon, produktivitet, styringsrente)
 data3 <-  reduce(dataset3, full_join, by="year")
 saveRDS(data, "data.rds")
 saveRDS(data2, "data2.rds")
