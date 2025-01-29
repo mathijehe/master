@@ -1,5 +1,6 @@
 data <- readRDS("data.rds")
 data2 <- readRDS("data2.rds")
+data3 <- readRDS("data3.rds")
 library(tidyverse)
 library(ggthemes)
 library(broom)
@@ -9,16 +10,6 @@ library(gt)
 library(DT)
 
 
-mean(data$BNP, na.rm = TRUE)  
-
-
-data_venstre <- data[data$Regjering != "Høyre", ]
-
-data_høyre <- data[data$Regjering != "Venstre", ]
-
-mean(data_venstre$BNP, na.rm = TRUE)  
-
-mean(data_høyre$BNP, na.rm = TRUE)  
 
 data %>% 
   slice(1:(n() - 3)) %>% 
@@ -150,12 +141,7 @@ ggplot(aes(x = ar, y = mean, fill = Regjering)) +
      rows = Statistic == "N",    # Formater kun radene for "N"
      decimals = 0                # Ingen desimaler for "N"
    )
-   
- 
- 
-  
+
  
 
 
- 
- 

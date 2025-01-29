@@ -220,11 +220,26 @@ dataset <- list(bnp_vekst, abreidsledighet, inflasjon, produktivitet,
 data <- reduce(dataset, full_join, by="year")
 
 
+#næring <- read_excel("~/Downloads/09170_20250128-115600.xlsx", 
+                #     col_names = FALSE)
+#saveRDS(næring, "næring.rds")
+næring <- readRDS("næring.rds")
 
+næring <- næring %>% 
+  slice(4:n()) %>% 
+  slice(1:(n() - 49)) %>% 
+  mutate(across(everything(), ~ifelse(is.na(.), "year", .)))
+colnames(næring) <- næring[1, ] 
+næring <- næring %>% 
+  slice(3:n()) %>% 
+  mutate(across(everything(), as.numeric)) 
 
 dataset2 <-  list(bnp_kvartal,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
 
+dataset3 <-  list(bnp_capita,regjering, næring)
+data3 <-  reduce(dataset3, full_join, by="year")
 saveRDS(data, "data.rds")
 saveRDS(data2, "data2.rds")
-
+saveRDS(data3, "data3.rds")
+str(bnp_capita)
