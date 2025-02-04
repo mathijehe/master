@@ -234,13 +234,25 @@ næring <- næring %>%
   slice(3:n()) %>% 
   mutate(across(everything(), as.numeric)) 
 
+#aksje <- read_excel("~/Desktop/aksje.xlsx")
+#saveRDS(aksje, "aksje.rds")
+aksje <- readRDS("aksje.rds")
+
+aksje <-aksje %>% 
+  rename(year="År")
+
 dataset2 <-  list(bnp_kvartal,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
 
 dataset3 <-  list(bnp_capita,regjering, næring, abreidsledighet, sysselsatte,
-                  handelsbalanse,inflasjon, produktivitet, styringsrente)
+                  handelsbalanse,inflasjon, produktivitet, styringsrente, aksje)
 data3 <-  reduce(dataset3, full_join, by="year")
+
+dataset4 <-  list(bnp_predeksjoner,bnp_vekst,regjering)
+data4 <-  reduce(dataset4, full_join, by="year")
+
 saveRDS(data, "data.rds")
 saveRDS(data2, "data2.rds")
 saveRDS(data3, "data3.rds")
+saveRDS(data4, "data4.rds")
 str(bnp_capita)

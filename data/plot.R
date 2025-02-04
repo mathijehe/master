@@ -144,4 +144,11 @@ ggplot(aes(x = ar, y = mean, fill = Regjering)) +
 
  
 
+data3 %>% 
+  ggplot(aes(year, norway)) +
+  geom_line() +
+  labs(title = "Vekst i BNP per innbygger",
+       x = NULL,  # Fjerner tekst på x-aksen
+       y = NULL) + # Fjerner tekst på y-aksen
+  theme_classic()
 

@@ -22,7 +22,7 @@ summary_table <- data3 %>%
   group_by(Regjering) %>%
   summarise(across(c(norway, total, fiske, Bergverksdrift, Industri,
                      sysend, arbend, arbeidsledighet, handelbalanse, inflasjonsvekst,
-                     produktivitet, STYRINGSRENTE), 
+                     produktivitet, STYRINGSRENTE, OSEBX, SPXTR), 
                    list(mean = ~mean(.x, na.rm = TRUE), 
                         se = ~sd(.x, na.rm = TRUE) / sqrt(sum(!is.na(.x)))),  # Teller kun tilgjengelige verdier
                    .names = "{.col}_{.fn}")) %>%
@@ -37,7 +37,7 @@ p_values <- data3 %>%
   summarise(across(c(norway, total,fiske,Bergverksdrift, Industri,
                      sysend, arbend, arbeidsledighet,
                      handelbalanse,inflasjonsvekst,
-                     produktivitet,STYRINGSRENTE), 
+                     produktivitet,STYRINGSRENTE, OSEBX, SPXTR), 
                    ~t.test(.x ~ Regjering)$p.value, 
                    .names = "{.col}")) %>%
   pivot_longer(cols = everything(), names_to = "variabel", values_to = "p_value")
@@ -68,6 +68,8 @@ final_table <- final_table %>%
       variabel == "inflasjonsvekst" ~ "Inflasjonsvekst",
       variabel == "produktivitet" ~ "Produktivitetsvekst",
       variabel == "STYRINGSRENTE" ~ "Styringsrente",
+      variabel == "OSEBX" ~ "OSEBX",
+      variabel == "SPXTR" ~ "S&P500 Index",
       TRUE ~ variabel  # Beholder andre variabler uendret
     )
   )
@@ -81,10 +83,11 @@ final_table <- final_table %>%
                       "Olje og gass", "Industri" ) ~ "Panel A: Økonomiske indikatorer",
       variabel %in% c("Sysselsetting utvikling", "Arbeidsledighet nivå", 
                       "Arbeidsledighet utvikling") ~ "Panel B: Arbeidsmarked",
-      variabel %in% c("Produktivitetsvekst") ~ "Panel C: Real lønn og prduktivitet",
-      variabel %in% c("Handelbalanse") ~ "Panel D: Goverment tall",
-      variabel %in% c("Inflasjonsvekst") ~ "Panel E: Inflasjon",
-      variabel %in% c("Styringsrente") ~ "Panel F: Renter",
+      variabel %in% c("OSEBX","S&P500 Index") ~ "Panel C: Arbeidsmarked",
+      variabel %in% c("Produktivitetsvekst") ~ "Panel D: Real lønn og prduktivitet",
+      variabel %in% c("Handelbalanse") ~ "Panel E: Goverment tall",
+      variabel %in% c("Inflasjonsvekst") ~ "Panel F: Inflasjon",
+      variabel %in% c("Styringsrente") ~ "Panel G: Renter",
       TRUE ~ "Andre variabler"
     )
   ) %>%
@@ -96,10 +99,11 @@ final_table <- final_table %>%
   mutate(panel = factor(panel, levels = c(
     "Panel A: Økonomiske indikatorer",
     "Panel B: Arbeidsmarked",
-    "Panel C: Real lønn og prduktivitet",
-    "Panel D: Goverment tall",
-    "Panel E: Inflasjon",
-    "Panel F: Renter"
+    "Panel C: Stck returns",
+    "Panel D: Real lønn og prduktivitet",
+    "Panel E: Goverment tall",
+    "Panel F: Inflasjon",
+    "Panel G: Renter"
   ))) %>%
   arrange(panel)  # Sorterer tabellen slik at Panel A kommer først
 
@@ -112,27 +116,31 @@ final_table %>%
     subtitle = "Gjennomsnittlig verdi basert på regjering"
   ) %>%
   tab_row_group(
-    group = "Panel F: Renter",
+    label = "Panel G: Renter",
     rows = variabel %in% c("Styringsrente")
   ) %>%
   tab_row_group(
-    group = "Panel E: Inflasjon",
+    label = "Panel F: Inflasjon",
     rows = variabel %in% c("Inflasjonsvekst")
   ) %>%
   tab_row_group(
-    group = "Panel D: Goverment tall",
+    label = "Panel E: Goverment tall",
     rows = variabel %in% c("Handelbalanse")
   ) %>%
   tab_row_group(
-    group = "Panel C: Real lønn og prduktivitet",
+    label = "Panel D: Real lønn og prduktivitet",
     rows = variabel %in% c("Produktivitetsvekst")
   ) %>%
   tab_row_group(
-    group = "Panel B: Arbeidsmarked",
+    label = "Panel C: Stck returns",
+    rows = variabel %in% c("OSEBX","S&P500 Index")
+  ) %>% 
+  tab_row_group(
+    label = "Panel B: Arbeidsmarked",
     rows = variabel %in% c("Sysselsetting utvikling","Arbeidsledighet nivå", "Arbeidsledighet utvikling")
   ) %>%
   tab_row_group(
-    group = "Panel A: Økonomiske indikatorer",
+    label = "Panel A: Økonomiske indikatorer",
     rows = variabel %in% c("BNP per innbygger", "Fiskeri næringen", "Industri", "Olje og gass", "Total for alle næringer")
   ) %>% 
   cols_label(
@@ -148,3 +156,51 @@ final_table %>%
     table.font.size = "medium"
   )
 
+
+
+
+data4 <- readRDS("data4.rds")
+#tabell predeksjon, fra 1991
+
+stat <- data4 %>% 
+  slice(1:(n() - 24)) %>% 
+  select(Regjering,year, BNP_pred, `BNP fastlands Norge`,ar)
+
+stat <- stat[stat$ar == "1", ]
+stat <- stat %>% 
+  group_by(Regjering) %>%
+  summarise(
+    Predikert = mean(BNP_pred, na.rm = TRUE),
+    Faktisk = mean(`BNP fastlands Norge`, na.rm = TRUE),
+    Forskjell = Faktisk - Predikert  # Avvik mellom faktisk og predikert BNP
+  ) %>%
+  pivot_longer(cols = c(Predikert, Faktisk, Forskjell),
+               names_to = "Type",
+               values_to = "Value")
+
+stat %>%
+  pivot_wider(names_from = Regjering, values_from = Value) %>%
+  gt() %>%
+  tab_header(
+    title = "BNP Vekstprognoser",
+    subtitle = "Gjennomsnittlig BNP-vekst i første år av regjeringens periode"
+  ) %>%
+  cols_label(
+    Type = " ",
+    Venstre = "Venstre",
+    Høyre = "Høyre",
+  ) %>%
+  fmt_number(
+    columns = c(Venstre, Høyre),
+    decimals = 1
+  ) %>%
+  tab_style(
+    style = cell_borders(sides = "top", weight = px(1)),  # Tykk linje over Difference
+    locations = cells_body(
+      columns = everything(),
+      rows = Type == "Forskjell"
+    )
+  ) %>%
+  tab_options(
+    table.font.size = "medium"
+  )
