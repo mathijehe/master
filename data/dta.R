@@ -241,7 +241,7 @@ aksje <- readRDS("aksje.rds")
 aksje <-aksje %>% 
   rename(year="År")
 
-dataset2 <-  list(bnp_kvartal,regjering)
+dataset2 <-  list(bnp,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
 
 dataset3 <-  list(bnp_capita,regjering, næring, abreidsledighet, sysselsatte,

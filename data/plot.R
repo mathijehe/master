@@ -11,7 +11,7 @@ library(DT)
 
 
 
-data %>% 
+data2 %>% 
   slice(1:(n() - 3)) %>% 
   slice(4:n()) %>% 
   group_by(...2) %>% 
@@ -19,15 +19,71 @@ data %>%
   arrange(year) %>% 
   ggplot(aes(x = reorder(...2, year), y = mean, fill = Regjering)) +
   geom_col(position = "dodge") +
-  labs(title = "Gjennomsnittlig BNP etter statsminister",
+  labs(
        x = NULL,  # Fjerner tekst på x-aksen
        y = NULL) + # Fjerner tekst på y-aksen
   theme_few() +
-  scale_fill_manual(values = c("Høyre" = "blue2", "Venstre" = "red3")) +
+  scale_fill_manual(values = c("Høyre" = "blue2", "Venstre" = "red3"),
+                    labels = c("Høyre" = "Konservativ", "Venstre" = "Sosialistisk")) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1)) +  # Roterer teksten 45 grader
   scale_y_continuous(breaks = c(1,2,3,4,5))
 
+
+
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+
+# Beregn gjennomsnitt for hver statsminister og for hele partiet
+data2_processed <- data2 %>%
+  slice(1:(n() - 3)) %>% 
+  slice(4:n()) %>%
+  group_by(Statsminister, Regjering) %>% 
+  mutate(mean = mean(BNP)) %>%
+  ungroup() %>% 
+  group_by(Regjering) %>% 
+  mutate(overall_mean = mean(BNP)) %>% 
+  ungroup() %>% 
+  rename(navn=...2)
+
+# Lag en egen dataframe for partigjennomsnittene (for å plassere dem separat)
+avg_data <- data2_processed %>%
+  distinct(Regjering, overall_mean) %>%
+  mutate(navn = paste(Regjering, "Gj.snitt"))  # Setter etikett "Høyre Avg" / "Venstre Avg"
+
+# Kombiner statsministre og gjennomsnitt i én dataframe
+plot_data <- bind_rows(data2_processed, avg_data)
+
+# Lag plottet
+ggplot(plot_data, aes(x = reorder(navn, year), y = mean, fill = Regjering)) +
+  
+  # Stolper for hver statsminister (blå/rød)
+  geom_col(data = filter(plot_data, !grepl("Gj.snitt", navn)),  # Endret fra "Avg" til "Gj.snitt"
+           position = position_dodge(), width = 0.6) +
+  
+  # Stolper for partigjennomsnittene (samme farge og stil som resten)
+  geom_col(data = filter(plot_data, grepl("Gj.snitt", navn)),   # Endret fra "Avg" til "Gj.snitt"
+           aes(y = overall_mean, fill = Regjering), width = 0.6) +
+  
+  # Tilpass utseendet
+  labs(title = "",
+       x = NULL,  
+       y = "") + 
+  theme_few() +
+  scale_fill_manual(values = c("Konservativ" = "blue2", "Sosialistisk" = "red3")) +
+  
+  # Behold x- og y-aksene, men fjern eventuell ramme
+  theme(
+    panel.border = element_blank(),  # Fjerner kun rammen, men beholder aksene
+    axis.line = element_line(),      # Beholder x- og y-aksene
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none",
+    panel.grid.major.x = element_blank(),  # Fjerner vertikale linjer
+    panel.grid.major.y = element_line(color = "grey80", linetype = "dashed")
+  ) +
+  
+  scale_y_continuous(breaks = seq(0, max(data2$BNP, na.rm = TRUE), by = 1))
 
 
 
