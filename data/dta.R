@@ -256,3 +256,5 @@ saveRDS(data2, "data2.rds")
 saveRDS(data3, "data3.rds")
 saveRDS(data4, "data4.rds")
 str(bnp_capita)
+
+data_bnp_regjering <- read_excel("~/Documents/SØK3900/Vekstrate BNP (kvartal), med regjeringsparti.xlsx")

@@ -14,19 +14,18 @@ data3 <- data3 %>%
     arbend = "arbeidsledighet_endring"
   ) %>%
   mutate(
-    handelbalanse = (lag(handelbalanse) - handelbalanse) / handelbalanse
+    handelbalanse = ((handelbalanse) - lag(handelbalanse)) / handelbalanse
   ) %>%
   slice(4:n()) %>%
   slice(1:(n() - 3)) %>%
-  filter(year >= 1978 & year <= 2021)   # <-- ✨ NEW LINE: only keep 1978-2021
-
+  filter(year >= 1978 & year <= 2021)
 
 # Variables
 vars <- c("norway", "total", "fiske", "Bergverksdrift", "Industri",
           "sysend", "arbend", "arbeidsledighet", "handelbalanse",
           "inflasjonsvekst", "produktivitet", "STYRINGSRENTE", "OSEBX", "SPXTR")
 
-# Final Table
+# Summary table
 summary_table <- map_dfr(vars, function(var) {
   df <- data3 %>% select(Regjering, all_of(var)) %>% drop_na()
   
@@ -58,19 +57,25 @@ summary_table <- map_dfr(vars, function(var) {
   
   tibble(
     variabel = var,
-    
     mean_venstre = means$mean[means$Regjering == "Venstre"],
     se_venstre = means$se[means$Regjering == "Venstre"],
-    
     mean_hoyre = means$mean[means$Regjering == "Høyre"],
     se_hoyre = means$se[means$Regjering == "Høyre"],
-    
     diff = diff_value,
     se_diff = se_diff_classical,
     nw_se_diff = nw_se,
     p_value = p_val
   )
 })
+
+# Multiply only point estimates for Panel C by 100 (OSEBX, SPXTR)
+summary_table <- summary_table %>%
+  mutate(
+    across(
+      c(mean_venstre, mean_hoyre, diff),
+      ~ if_else(variabel %in% c("OSEBX", "SPXTR"), .x * 100, .x)
+    )
+  )
 
 # Format the final display
 final_table <- summary_table %>%
@@ -95,7 +100,7 @@ final_table <- final_table %>%
       variabel == "arbend" ~ "Arbeidsledighet: utvikling (VR)",
       variabel == "arbeidsledighet" ~ "Arbeidsledighet: nivå (%)",
       variabel == "handelbalanse" ~ "Handelbalanse (VR)",
-      variabel == "inflasjonsvekst" ~ "Inflasjonsvekst (%)",
+      variabel == "inflasjonsvekst" ~ "Inflasjonsvekst (VR)",
       variabel == "produktivitet" ~ "Produktivitetsvekst (VR)",
       variabel == "STYRINGSRENTE" ~ "Styringsrente (%)",
       variabel == "OSEBX" ~ "OSEBX (%)",
@@ -109,12 +114,12 @@ final_table <- final_table %>%
   mutate(
     panel = case_when(
       variabel %in% c("BNP per innbygger", "Total for alle næringer (VR)", "Fiskerinæringen (VR)",
-                      "Olje og gass (VR)", "Industri (VR)") ~ "Panel A: Økonomiske indikatorer",
+                      "Olje og gass (VR)", "Industri (VR)") ~ "Panel A: Viktige næringssektorer",
       variabel %in% c("Sysselsetting: utvikling (VR)", "Arbeidsledighet: nivå (%)", "Arbeidsledighet: utvikling (VR)") ~ "Panel B: Arbeidsmarked",
-      variabel %in% c("OSEBX (%)", "S&P500 Index (%)") ~ "Panel C: Stock returns",
-      variabel %in% c("Produktivitetsvekst (VR)") ~ "Panel D: Real lønn og produktivitet",
-      variabel %in% c("Handelbalanse (VR)") ~ "Panel E: Government tall",
-      variabel %in% c("Inflasjonsvekst (%)") ~ "Panel F: Inflasjon",
+      variabel %in% c("OSEBX (%)", "S&P500 Index (%)") ~ "Panel C: Avkastning aksjemarkeder",
+      variabel %in% c("Produktivitetsvekst (VR)") ~ "Panel D: Produktivitet",
+      variabel %in% c("Handelbalanse (VR)") ~ "Panel E: Internasjonal handel",
+      variabel %in% c("Inflasjonsvekst (VR)") ~ "Panel F: Inflasjon",
       variabel %in% c("Styringsrente (%)") ~ "Panel G: Renter",
       TRUE ~ "Andre variabler"
     )
@@ -124,7 +129,7 @@ final_table <- final_table %>%
 final_table <- final_table %>%
   filter(variabel != "BNP per innbygger")
 
-# Create final gt() Table
+# Create gt table
 final_table %>%
   select(-panel) %>%
   gt() %>%
@@ -138,14 +143,14 @@ final_table %>%
   ) %>%
   tab_row_group(
     label = "Panel F: Inflasjon",
-    rows = variabel == "Inflasjonsvekst (%)"
+    rows = variabel == "Inflasjonsvekst (VR)"
   ) %>%
   tab_row_group(
     label = "Panel E: Internasjonal handel",
     rows = variabel == "Handelbalanse (VR)"
   ) %>%
   tab_row_group(
-    label = "Panel D: Real lønn og produktivitet",
+    label = "Panel D: Produktivitet",
     rows = variabel == "Produktivitetsvekst (VR)"
   ) %>%
   tab_row_group(
@@ -157,8 +162,8 @@ final_table %>%
     rows = variabel %in% c("Sysselsetting: utvikling (VR)", "Arbeidsledighet: nivå (%)", "Arbeidsledighet: utvikling (VR)")
   ) %>%
   tab_row_group(
-    label = "Panel A: Økonomiske indikatorer",
-    rows = variabel %in% c("BNP per innbygger", "Fiskerinæringen (VR)", "Industri (VR)", "Olje og gass (VR)", "Total for alle næringer (VR)")
+    label = "Panel A: Viktige næringssektorer",
+    rows = variabel %in% c("Fiskerinæringen (VR)", "Industri (VR)", "Olje og gass (VR)", "Total for alle næringer (VR)")
   ) %>%
   cols_label(
     variabel = "Variabel",
@@ -179,9 +184,6 @@ final_table %>%
     row_group.border.bottom.style = "none",
     row_group.font.weight = "bold"
   )
-
-
-
 
 
 

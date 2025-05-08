@@ -10,7 +10,7 @@ library(gt)
 library(DT)
 
 
-
+##FIGUR 1 ÅRLIG
 data2 %>% 
   slice(1:(n() - 3)) %>% 
   slice(4:n()) %>% 
@@ -85,6 +85,71 @@ mean(data2_processed$`BNP fastlands Norge`, na.rm = TRUE)
 data2_processed %>%
   group_by(Regjering) %>%
   summarise(mean_bnp_fastlands = mean(`BNP fastlands Norge`, na.rm = TRUE))
+
+
+#FIGUR 1 KVARTALSVIS
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+
+# Step 1: Prepare data using BNP vekstrate from data_clean
+data_clean_plot <- data_clean %>%
+  mutate(
+    `BNP vekstrate` = as.numeric(`BNP vekstrate`),
+    year = as.numeric(substr(Tidsperiode, 1, 4))
+  ) %>%
+  filter(year >= 1978 & year <= 2021) %>%
+  group_by(Statsminister, Ideologi) %>%
+  mutate(mean = mean(`BNP vekstrate`, na.rm = TRUE)) %>%
+  ungroup() %>%
+  group_by(Ideologi) %>%
+  mutate(overall_mean = mean(`BNP vekstrate`, na.rm = TRUE)) %>%
+  ungroup() %>%
+  rename(navn = Statsminister)
+
+
+# Step 2: Create party-wide means for overlay bars
+avg_data <- data_clean_plot %>%
+  distinct(Ideologi, overall_mean) %>%
+  mutate(navn = paste(Ideologi, "Gj.snitt"))
+
+# Step 3: Combine all data
+plot_data <- bind_rows(data_clean_plot, avg_data)
+
+# Step 4: Plot
+ggplot(plot_data, aes(x = reorder(navn, year), y = mean, fill = Ideologi)) +
+  
+  geom_col(data = filter(plot_data, !grepl("Gj.snitt", navn)),
+           position = position_dodge(), width = 0.6) +
+  
+  geom_col(data = filter(plot_data, grepl("Gj.snitt", navn)),
+           aes(y = overall_mean, fill = Ideologi), width = 0.6) +
+  
+  labs(title = "",
+       x = NULL,
+       y = NULL) +
+  theme_few() +
+  scale_fill_manual(values = c("Konservativ" = "blue2", "Sosialistisk" = "red3")) +
+  
+  theme(
+    panel.border = element_blank(),
+    axis.line = element_line(),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none",
+    panel.grid.major.x = element_blank(),
+    panel.grid.major.y = element_line(color = "grey80", linetype = "dashed")
+  ) +
+  
+  scale_y_continuous(breaks = seq(0, max(data_clean$`BNP vekstrate`, na.rm = TRUE), by = 1))
+
+# Coerce to numeric first, then compute the overall mean
+mean(as.numeric(data_clean$`BNP vekstrate`), na.rm = TRUE)
+
+# GDP growth by ideology
+data_clean %>%
+  mutate(`BNP vekstrate` = as.numeric(`BNP vekstrate`)) %>%
+  group_by(Ideologi) %>%
+  summarise(mean_bnp_growth = mean(`BNP vekstrate`, na.rm = TRUE))
 
 
 
@@ -211,8 +276,9 @@ data3 %>%
 
 
 
-
+##TABELL 1
 saveRDS(BNP_Fastlands_kvartal, "BNP_Fastlands_kvartal.rds")
+
 
 # ===========================================
 # STEP 1: Load Libraries
@@ -247,6 +313,14 @@ data_clean <- data_raw %>%
   ) %>%
   rename(`BNP vekstrate` = BNP_Fastlands_Norge)
 
+data_clean <- data_clean %>%
+  mutate(
+    Regjeringsparti = if_else(Tidsperiode == "1997K4", "KrF", Regjeringsparti),
+    Statsminister   = if_else(Tidsperiode == "1997K4", "Bondevik 1", Statsminister),
+    Ideologi        = if_else(Tidsperiode == "1997K4", "Konservativ", Ideologi)
+  )
+
+
 # ===========================================
 # STEP 3: Identify Recession Quarters
 # ===========================================
@@ -269,21 +343,16 @@ n_terms_by_ideology <- data_clean %>%
   group_by(Ideologi) %>%
   summarise(
     Number_of_Terms = n(),
-    Average_Term_Length = mean(Term_Length) / 4  # ⚠️ NOW IN YEARS
+    Average_Term_Length = mean(Term_Length) / 4  # In years
   )
 
-
-
 # ===========================================
-# STEP 5: Compute GDP Statistics
+# STEP 5: Compute GDP Statistics (Updated to use data_clean)
 # ===========================================
 
-data_gdp <- data2_processed %>%
-  rename(
-    Regjeringsparti = Parti,
-    Ideologi = Regjering,
-    `BNP vekstrate` = `BNP fastlands Norge`
-  )
+data_gdp <- data_clean %>%
+  select(Ideologi, `BNP vekstrate`) %>%
+  mutate(`BNP vekstrate` = as.numeric(`BNP vekstrate`))
 
 gdp_stats <- data_gdp %>%
   group_by(Ideologi) %>%
@@ -314,7 +383,6 @@ recession_stats <- data_clean %>%
   ) %>%
   left_join(n_terms_by_ideology, by = "Ideologi") %>%
   mutate(
-    # Correct scaling:
     Average_Recession_Quarters_per_4year = Recession_Share * 4,
     Average_Recession_Quarters_per_term  = Recession_Share * Average_Term_Length
   )
@@ -330,7 +398,7 @@ recession_se <- data_clean %>%
   )
 
 # ===========================================
-# STEP 6.3: Newey-West SEs for both
+# STEP 6.3: Newey-West SEs
 # ===========================================
 
 nw_se_recession <- data_clean %>%
@@ -339,7 +407,6 @@ nw_se_recession <- data_clean %>%
     NW_SE_Recession = sqrt(diag(vcovHAC(lm(Recession ~ 1, data = cur_data()))))[1]
   )
 
-# Calculate NW-SE for regjeringsperiode (term model)
 term_data <- data_clean %>%
   group_by(Ideologi, Statsminister) %>%
   summarise(Recession_Quarters = sum(Recession, na.rm = TRUE), .groups = "drop")
@@ -358,8 +425,6 @@ recession_stats <- recession_stats %>%
   left_join(recession_se, by = "Ideologi") %>%
   left_join(nw_se_recession, by = "Ideologi") %>%
   left_join(nw_se_recession_term, by = "Ideologi")
-
-
 
 # ===========================================
 # STEP 7: Merge GDP & Recession Stats
@@ -396,49 +461,44 @@ se_diff_recession <- sqrt(
     table_1$SE_Recession[table_1$Ideologi == "Konservativ"]^2
 )
 
-# --- NW SE for difference in Kvartaler i resesjon (Stortingsperiode) ---
 se_diff_recession_4year_nw <- sqrt(
   table_1$NW_SE_Recession[table_1$Ideologi == "Sosialistisk"]^2 +
     table_1$NW_SE_Recession[table_1$Ideologi == "Konservativ"]^2
 )
 
-# --- NW SE for difference in Kvartaler i resesjon (Gj.snitt regjeringsperiode) ---
 se_diff_recession_term_nw <- sqrt(
   table_1$NW_SE_Recession_per_term[table_1$Ideologi == "Sosialistisk"]^2 +
     table_1$NW_SE_Recession_per_term[table_1$Ideologi == "Konservativ"]^2
 )
 
 # ===========================================
-# STEP 9: T-Tests (p-values) using Newey-West SEs
+# STEP 9: T-Tests (p-values) using NW SEs
 # ===========================================
 
-# --- Compute t-statistics using NW standard errors ---
 t_stat_gdp_nw <- diff_gdp / se_diff_gdp_nw
 t_stat_recession_4year_nw <- diff_recession_4year / se_diff_recession_4year_nw
 t_stat_recession_term_nw <- diff_recession_term / se_diff_recession_term_nw
 
-# --- Compute two-tailed p-values from t-statistics ---
-# Using normal approximation (df = Inf)
 p_value_gdp_nw <- 2 * pt(-abs(t_stat_gdp_nw), df = Inf)
 p_value_recession_4year_nw <- 2 * pt(-abs(t_stat_recession_4year_nw), df = Inf)
 p_value_recession_term_nw <- 2 * pt(-abs(t_stat_recession_term_nw), df = Inf)
 
-
-
 # ===========================================
-# STEP 10: Final Table
+# STEP 10: Final Table Output
 # ===========================================
 
 table_1_final <- data.frame(
-  Variable = c("BNP-vekst (%)", "Kvartaler i resesjon (Stortingsperiode)", "Kvartaler i resesjon (Gj.snitt regjeringsperiode)"),
+  Variable = c("BNP (VR)", "Kvartaler i resesjon (Stortingsperiode)", "Kvartaler i resesjon (Gj.snitt regjeringsperiode)"),
   
   Sosialistisk = c(
     paste0(round(table_1$Avg_GDP_Growth[table_1$Ideologi == "Sosialistisk"], 2), 
            " (", round(table_1$Standard_Error[table_1$Ideologi == "Sosialistisk"], 2), 
            ") [", round(table_1$NW_SE[table_1$Ideologi == "Sosialistisk"], 2), "]"),
+    
     paste0(round(table_1$Average_Recession_Quarters_per_4year[table_1$Ideologi == "Sosialistisk"], 2), 
            " (", round(table_1$SE_Recession[table_1$Ideologi == "Sosialistisk"], 2),
            ") [", round(table_1$NW_SE_Recession[table_1$Ideologi == "Sosialistisk"], 2), "]"),
+    
     paste0(round(table_1$Average_Recession_Quarters_per_term[table_1$Ideologi == "Sosialistisk"], 2), 
            " (", round(table_1$SE_Recession[table_1$Ideologi == "Sosialistisk"], 2),
            ") [", round(table_1$NW_SE_Recession_per_term[table_1$Ideologi == "Sosialistisk"], 2), "]")
@@ -448,24 +508,20 @@ table_1_final <- data.frame(
     paste0(round(table_1$Avg_GDP_Growth[table_1$Ideologi == "Konservativ"], 2), 
            " (", round(table_1$Standard_Error[table_1$Ideologi == "Konservativ"], 2), 
            ") [", round(table_1$NW_SE[table_1$Ideologi == "Konservativ"], 2), "]"),
+    
     paste0(round(table_1$Average_Recession_Quarters_per_4year[table_1$Ideologi == "Konservativ"], 2), 
            " (", round(table_1$SE_Recession[table_1$Ideologi == "Konservativ"], 2),
            ") [", round(table_1$NW_SE_Recession[table_1$Ideologi == "Konservativ"], 2), "]"),
+    
     paste0(round(table_1$Average_Recession_Quarters_per_term[table_1$Ideologi == "Konservativ"], 2), 
            " (", round(table_1$SE_Recession[table_1$Ideologi == "Konservativ"], 2),
            ") [", round(table_1$NW_SE_Recession_per_term[table_1$Ideologi == "Konservativ"], 2), "]")
   ),
   
   Difference = c(
-    paste0(round(diff_gdp, 2), 
-           " (", round(se_diff_gdp, 2), ") [", round(se_diff_gdp_nw, 2), "]"), 
-    
-    paste0(round(diff_recession_4year, 2), 
-           " (", round(se_diff_recession, 2), ") [", round(se_diff_recession_4year_nw, 2), "]"),
-    
-    paste0(round(diff_recession_term, 2), 
-           " (", round(se_diff_recession, 2), ") [", round(se_diff_recession_term_nw, 2), "]")
-    
+    paste0(round(diff_gdp, 2), " (", round(se_diff_gdp, 2), ") [", round(se_diff_gdp_nw, 2), "]"), 
+    paste0(round(diff_recession_4year, 2), " (", round(se_diff_recession, 2), ") [", round(se_diff_recession_4year_nw, 2), "]"),
+    paste0(round(diff_recession_term, 2), " (", round(se_diff_recession, 2), ") [", round(se_diff_recession_term_nw, 2), "]")
   ),
   
   `p.value` = c(
@@ -473,9 +529,7 @@ table_1_final <- data.frame(
     round(p_value_recession_4year_nw, 3),
     round(p_value_recession_term_nw, 3)
   )
-  
 )
-
 
 # ===========================================
 # STEP 11: Plot
@@ -506,6 +560,7 @@ table_1_final %>%
     table.border.bottom.style = "none",
     table_body.border.bottom.style = "none"
   )
+
 
 t_stat_recession_4year_nw
 
