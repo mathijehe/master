@@ -47,10 +47,12 @@ data2_processed <- data2 %>%
   ungroup() %>% 
   rename(navn=...2)
 
+
 # Lag en egen dataframe for partigjennomsnittene (for å plassere dem separat)
 avg_data <- data2_processed %>%
   distinct(Regjering, overall_mean) %>%
   mutate(navn = paste(Regjering, "Gj.snitt"))  # Setter etikett "Høyre Avg" / "Venstre Avg"
+#saveRDS(avg_data, "avg_data.rds")
 
 # Kombiner statsministre og gjennomsnitt i én dataframe
 plot_data <- bind_rows(data2_processed, avg_data)

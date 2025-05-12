@@ -2,11 +2,11 @@ library(readxl)
 library(tidyverse)
 
 
-#bnp_vekst <- read_excel("~/Downloads/09189_20250114-141213.xlsx")
+bnp_vekst <- read_excel("~/Downloads/09189_20250114-141213.xlsx")
 #saveRDS(bnp_vekst, "bnp_vekst.rds")
 bnp_vekst <- readRDS("bnp_vekst.rds")
 bnp_vekst <- bnp_vekst %>% 
-  select("year"="...2", "BNP"="...5", "BNP fastlands Norge"="...6") %>% 
+  dplyr::select("year"="...2", "BNP"="...5", "BNP fastlands Norge"="...6") %>% 
   drop_na()%>% 
   mutate(across(everything(), as.numeric))
 
@@ -121,6 +121,11 @@ regjering <- readRDS("regjering.rds")
 
 regjering$year <- as.numeric(regjering$year)  
 
+regjering <- regjering %>%
+  mutate(Regjering = recode(Regjering, 
+                            "Høyre" = "Konservativ", 
+                            "Venstre" = "Sosialistisk"))
+
 #bnp_kvartal <- read_excel("~/Downloads/09190_20250121-112748.xlsx", 
  #                         col_names = FALSE)
 #saveRDS(bnp_kvartal, "bnp_kvartal.rds")
@@ -141,7 +146,7 @@ bnp_kvartal <-  bnp_kvartal %>%
 
 
 #bnp_capita <- read_csv("~/Downloads/P_Data_Extract_From_World_Development_Indicators-2/9d5b2de6-efe2-4ae2-915c-933706c14c5d_Data.csv")
-#saveRDS(bnp_capita, "bnp_capita.rds")
+saveRDS(bnp_capita, "bnp_capita.rds")
 bnp_capita <- readRDS("bnp_capita.rds")
 
 bnp_capita <-  bnp_capita %>% 
@@ -241,7 +246,7 @@ aksje <- readRDS("aksje.rds")
 aksje <-aksje %>% 
   rename(year="År")
 
-dataset2 <-  list(bnp,regjering)
+dataset2 <-  list(bnp_vekst,regjering)
 data2 <-  reduce(dataset2, full_join, by="year")
 
 dataset3 <-  list(bnp_capita,regjering, næring, abreidsledighet, sysselsatte,
