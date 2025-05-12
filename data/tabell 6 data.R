@@ -10,6 +10,29 @@ library(tseries)
 
 #data olje
 
+ravarepriser <- read_excel("~/Desktop/råvarepriser.xlsx")
+
+ravarepriser <- ravarepriser %>% 
+  mutate(
+    year = str_replace(year, "M", "-"),
+    year = paste0(year, "-01"),          
+    year = ymd(year)) %>% 
+  mutate(
+    year = floor_date(year, "quarter")  # Round down to first month of the quarter
+  ) %>%
+  group_by(year) %>%
+  summarise(
+    oil = mean(oil, na.rm = TRUE),
+    index = mean(index, na.rm = TRUE),# Quarterly average
+    .groups = "drop"
+  ) %>% 
+  mutate(
+    oil = log(oil) - log(lag(oil, 1)),
+    index = log(index) - log(lag(index, 1)) 
+  ) %>%  
+  drop_na()
+
+
 olje <- read_excel("~/Downloads/RBRTEm.xls")
 
 olje <- olje %>%
@@ -38,9 +61,10 @@ EXR <-EXR %>%
     .groups = "drop"
   ) 
   
-bnp <- read_csv("~/Downloads/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GROWTH_OECD,1.0+Q..NOR...B1GQ......G1..csv")
+bnp <- read_excel("~/Downloads/Kilde til vekstrate BNP OECD.xlsx", 
+           col_names = FALSE)
 bnp <- bnp %>% 
-  dplyr::select("year"="TIME_PERIOD", "bnp"="OBS_VALUE") %>% 
+  dplyr::select("year"="...1", "bnp"="...2") %>% 
   arrange(year) %>% 
   mutate(
     year = str_replace(year, "Q1", "-01-01"),
@@ -50,7 +74,7 @@ bnp <- bnp %>%
     year = ymd(year)  # Konverterer til datoformat
   )
 
-data5 <- list(olje,EXR, bnp)
+data5 <- list(ravarepriser, bnp, kpi)
 data5 <-  reduce(data5, full_join, by="year") 
 
 data5 <- data5 %>% 
@@ -83,6 +107,7 @@ kpi <-  kpi %>%
     .groups = "drop"
   ) %>% 
   mutate(kpi = log(kpi) - log(lag(kpi, 1))) %>% 
+  mutate(kpi = c( NA,diff(kpi))) %>% 
   drop_na()
 
 #styringsrente
@@ -137,7 +162,7 @@ bnp <- bnp %>%
     year = ymd(year)  # Konverterer til datoformat
   )
 
-data4 <- list(styringsrente3, bnp, kpi)
+data4 <- list(styringsrente3,bnp, kpi,ravarepriser)
 data4 <-  reduce(data4, full_join, by="year") 
 
 data4 <- data4 %>% 
@@ -167,7 +192,10 @@ bnp_int <- bnp_int %>%
     year = str_replace(year, "Q3", "-07-01"),
     year = str_replace(year, "Q4", "-10-01"),
     year = ymd(year)  # Konverterer til datoformat
-  ) 
+  ) %>% 
+  mutate(across(-year, as.numeric))
+
+
 
 bnp <- read_csv("~/Downloads/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GROWTH_OECD,1.0+Q..NOR...B1GQ......G1..csv")
 bnp <- bnp %>% 
@@ -181,7 +209,7 @@ bnp <- bnp %>%
     year = ymd(year)  # Konverterer til datoformat
   )
 
-bnp_int <- list(bnp_int, bnp)
+bnp_int <- list(bnp_int, bnp, ravarepriser,kpi)
 bnp_int <-  reduce(bnp_int, full_join, by="year") 
 
 bnp_int <- bnp_int %>% 
@@ -211,6 +239,22 @@ bnp_vekst <- bnp_vekst %>%
 dataset6 <-  list(bnp_vekst,prod)
 data6 <-  reduce(dataset6, full_join, by="year")
 
+
+
+# Lag kvartals-datoer
+quarters <- expand.grid(
+  year = 1971:2024,
+  quarter = 1:4
+) %>%
+  arrange(year, quarter) %>%
+  mutate(
+    date = yq(paste0(year, " Q", quarter))
+  )
+
+# === Step-interpoler ===
+quarterly_prod <- quarters %>%
+  left_join(prod, by = "year") %>% 
+  dplyr::select(year=date, prod)
 
  
 #forbrukerforventninger
@@ -246,10 +290,10 @@ bnp <- bnp %>%
     year = ymd(year)  # Konverterer til datoformat
   )
 
-data8 <- list(forvent, bnp)
-data8 <-  reduce(data8, full_join, by="year") 
+data3 <- list(forvent, bnp, kpi, ravarepriser)
+data3 <-  reduce(data3, full_join, by="year") 
 
-data8 <- data8 %>% 
+data3 <- data3 %>% 
   arrange(year) %>% 
   drop_na()
 
@@ -267,6 +311,7 @@ finans <- finans %>%
     year = ymd(year)  # Konverterer til datoformat
   ) 
 
+finans$finans <- as.numeric(finans$finans) 
 
 bnp <- read_csv("~/Downloads/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GROWTH_OECD,1.0+Q..NOR...B1GQ......G1..csv")
 bnp <- bnp %>% 
@@ -280,7 +325,7 @@ bnp <- bnp %>%
     year = ymd(year)  # Konverterer til datoformat
   )
 
-data9 <- list(finans, bnp)
+data9 <- list(finans, bnp,kpi,ravarepriser)
 data9 <-  reduce(data9, full_join, by="year") 
 
 data9 <- data9 %>% 
@@ -288,6 +333,10 @@ data9 <- data9 %>%
   drop_na()
 
 data9$finans <- as.numeric(data9$finans) 
+
+
+
+
   
   
 

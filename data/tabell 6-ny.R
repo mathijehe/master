@@ -1,6 +1,6 @@
 
 #oljesjokk
-adf.test(data5$pris)
+adf.test(var_data$intl_bnp_growth)
 
 # Klargjør data (dobbel differensiering av oljeprisen)
 var_data <- data5 %>%
@@ -248,5 +248,165 @@ int_sjokk <- readRDS("int_sjokk.rds")
 
 
 
-data <- list(finans_sjokk, forvet_sjokk,rente_sjokk,oil_sjokk,int_sjokk)
-data <- reduce(data, full_join, by = c("year", "bnp"))
+prod_sjokk <- prod_sjokk %>%
+  mutate(year = as.integer(year)) %>%  # Sørg for at 'year' er numerisk
+  expand(year, quarter = c(1, 2, 3, 4)) %>%  # Lag kvartalsvise rader
+  left_join(prod_sjokk, by = "year") %>%  # Legg til originale data
+  mutate(date = ymd(paste0(year, "-", (quarter - 1) * 3 + 1, "-01"))) %>%  # Lag datoer
+  dplyr::select(-quarter, -year, -BNP) %>%  # Fjern 'quarter' hvis ikke nødvendig
+  fill(everything(), .direction = "down") %>% 
+  rename(year=date) # Fyll inn verdier for kvartaler
+
+
+finans_shock <- finans_sjokk %>% 
+  dplyr::select(finans_shock, year)
+
+forven_scock <- forvet_sjokk %>% 
+  dplyr::select(forven_scock=rente_shock, year)
+
+prod_shock <- prod_sjokk %>% 
+  dplyr::select(prod_shock, year)
+
+rente_shock <- rente_sjokk %>% 
+  dplyr::select(rente_shock,year)
+
+oil_shock <- oil_sjokk %>% 
+  dplyr::select(oil_shock,year)
+
+int_shock <- int_sjokk %>% 
+  dplyr::select(int_shock,year, bnp)
+
+
+  
+
+data <- list(oil_shock, int_shock,rente_shock,prod_shock, finans_shock, forven_scock)
+data <- reduce(data, full_join, by = c("year"))
+data <- data %>% arrange(year)
+saveRDS(data, "data.rds")
+data <- readRDS("data.rds")
+
+library(fixest)
+
+
+data <- data %>% mutate(panel_id = 1)  # Kunstig gruppe-ID
+
+results <- list()  # Opprett en tom liste for resultatene
+
+for (sjokk in sjokk_var) {
+  # Fjern kun NA i den spesifikke sjokkvariabelen, ikke hele datasettet
+  data_subset <- data %>% drop_na(bnp, all_of(sjokk))  
+  
+  # Kjør regresjonen med den filtrerte dataen
+  model <- feols(as.formula(paste0("bnp ~ l(", sjokk, ", 0:4)")), 
+                 data = data_subset, 
+                 panel.id = ~panel_id + year)
+  
+  results[[sjokk]] <- model  # Lagre modellen
+}
+
+
+library(broom)
+
+# Lag en tom dataframe for tabellen
+table_data <- data.frame(
+  Shock = character(),
+  Total_D_R_Gap = numeric(),
+  Explained_D_R_Gap = numeric(),
+  SE = numeric(),
+  Party_Specific = numeric(),
+  SE_Party = numeric()
+)
+
+# Hent resultater fra hver regresjon
+for (sjokk in names(results)) {
+  model <- results[[sjokk]]
+  
+  # Hent koeffisientene
+  coef_est <- coef(model)  
+  
+  # Hent varians-kovariansmatrisen, men sjekk om den inneholder NA
+  vcov_mat <- vcov(model)
+  if (any(is.na(vcov_mat))) {
+    warning(paste("Advarsel: vcov inneholder NA for sjokk", sjokk))
+    next  # Hopp over denne iterasjonen
+  }
+  
+  se_est <- sqrt(diag(vcov_mat))  # Standardfeil
+  
+  # Summen av koeffisientene for alle lag
+  explained_gap <- sum(coef_est[-1], na.rm = TRUE)  # Unngå NA-problemer
+  
+  # Standardfeil for summen (unngå NA-feil)
+  se_gap <- sqrt(sum(se_est[-1]^2, na.rm = TRUE))
+  
+  # Hvis partispecifikke effekter er med i modellen:
+  party_effect <- if ("X:party_dummy" %in% names(coef_est)) coef_est["X:party_dummy"] else NA
+  se_party <- if ("X:party_dummy" %in% names(se_est)) se_est["X:party_dummy"] else NA
+  
+  # Legg til i tabellen
+  table_data <- rbind(table_data, data.frame(
+    Shock = sjokk,
+    Total_D_R_Gap = coef_est[1],  
+    Explained_D_R_Gap = explained_gap,
+    SE = se_gap,
+    Party_Specific = party_effect,
+    SE_Party = se_party
+  ))
+}
+
+
+# Se tabellen
+print(table_data)
+
+
+library(gt)
+
+table_data %>%
+  gt() %>%
+  tab_header(title = "Forklaring av vekstgapet mellom regjeringer i Norge") %>%
+  fmt_number(columns = 2:6, decimals = 2) %>%
+  cols_label(
+    Shock = "Sjokk",
+    Total_D_R_Gap = "Total Vekstforskjell",
+    Explained_D_R_Gap = "Forklart Gap",
+    SE = "SE",
+    Party_Specific = "Partispesifikk Effekt",
+    SE_Party = "SE (Partispesifikk)"
+  )
+
+
+
+for (sjokk in names(results)) {
+  model <- results[[sjokk]]
+  
+  # Sjekk om vcov() inneholder NA
+  vcov_mat <- vcov(model)
+  if (any(is.na(vcov_mat))) {
+    warning(paste("Varning: vcov() har NA for sjokk", sjokk, "- Hopper over."))
+    next  # Hopp over denne iterasjonen
+  }
+  
+  # Hent koeffisienter og standardfeil
+  coef_est <- coef(model)
+  se_est <- sqrt(diag(vcov_mat))  # Standardfeil
+  
+  # Beregn summen av koeffisientene
+  explained_gap <- sum(coef_est[-1], na.rm = TRUE)
+  se_gap <- sqrt(sum(se_est[-1]^2, na.rm = TRUE))
+  
+  # Håndter partispecifikke effekter
+  party_effect <- if ("X:party_dummy" %in% names(coef_est)) coef_est["X:party_dummy"] else NA
+  se_party <- if ("X:party_dummy" %in% names(se_est)) se_est["X:party_dummy"] else NA
+  
+  # Legg til i tabellen
+  table_data <- rbind(table_data, data.frame(
+    Shock = sjokk,
+    Total_D_R_Gap = coef_est[1],  
+    Explained_D_R_Gap = explained_gap,
+    SE = se_gap,
+    Party_Specific = party_effect,
+    SE_Party = se_party
+  ))
+}
+
+
