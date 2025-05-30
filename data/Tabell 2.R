@@ -27,7 +27,7 @@ vars <- c("norway", "total", "fiske", "Bergverksdrift", "Industri",
 
 # Summary table
 summary_table <- map_dfr(vars, function(var) {
-  df <- data3 %>% select(Regjering, all_of(var)) %>% drop_na()
+  df <- data3 %>% dplyr::select(Regjering, all_of(var)) %>% drop_na()
   
   # Classical SEs
   means <- df %>% group_by(Regjering) %>%
@@ -85,7 +85,7 @@ final_table <- summary_table %>%
     Forskjell = glue("{round(diff, 2)} ({round(se_diff, 2)}) [{round(nw_se_diff, 2)}]"),
     p_value = ifelse(p_value < 0.001, "<0.001", round(p_value, 3))
   ) %>%
-  select(variabel, Sosialistisk, Konservativ, Forskjell, p_value)
+  dplyr::select(variabel, Sosialistisk, Konservativ, Forskjell, p_value)
 
 # Rename nicely
 final_table <- final_table %>%
@@ -130,8 +130,8 @@ final_table <- final_table %>%
   filter(variabel != "BNP per innbygger")
 
 # Create gt table
-final_table %>%
-  select(-panel) %>%
+øk_ind <- final_table %>%
+  dplyr::select(-panel) %>%
   gt() %>%
   tab_header(
     title = "",
@@ -187,7 +187,8 @@ final_table %>%
 
 
 
-
+# Lagre som PDF
+gtsave(øk_ind, filename = "øk_ind.pdf")
 
 
 
@@ -301,7 +302,7 @@ final_table <- summary_table %>%
     Konservativ = glue("{round(mean_Høyre, 2)} ({round(se_Høyre, 2)}) [{round(NW_SE_Høyre, 2)}]"),
     Forskjell = glue("{round(diff, 2)} ({round(diff_se, 2)})")
   ) %>%
-  select(variabel, Sosialistisk, Konservativ, Forskjell)
+  dplyr::select(variabel, Sosialistisk, Konservativ, Forskjell)
 
 # Print the updated table
 print(final_table)
@@ -365,7 +366,7 @@ data4 <- readRDS("data4.rds")
 
 stat <- data4 %>% 
   slice(1:(n() - 24)) %>% 
-  select(Regjering,year, BNP_pred, `BNP fastlands Norge`,ar)
+  dplyr::select(Regjering,year, BNP_pred, `BNP fastlands Norge`,ar)
 
 stat <- stat[stat$ar == "1", ]
 stat <- stat %>% 

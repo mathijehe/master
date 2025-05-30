@@ -50,12 +50,12 @@ data2_processed <- data2 %>%
 # Lag en egen dataframe for partigjennomsnittene (for å plassere dem separat)
 avg_data <- data2_processed %>%
   distinct(Regjering, overall_mean) %>%
-<<<<<<< HEAD
-  mutate(navn = paste(Regjering, "Gj.snitt"))  # Setter etikett "Høyre Avg" / "Venstre Avg"
+#<<<<<<< HEAD
+  mutate(navn = paste(Regjering, "Gj.snitt")) %>%  # Setter etikett "Høyre Avg" / "Venstre Avg"
 #saveRDS(avg_data, "avg_data.rds")
-=======
+#=======
   mutate(navn = paste(Regjering, "Gj.snitt"))
->>>>>>> bfeb5c2a530e701221458ceea9a5ee7390f8d44b
+#>>>>>>> bfeb5c2a530e701221458ceea9a5ee7390f8d44b
 
 # Kombiner statsministre og gjennomsnitt i én dataframe
 plot_data <- bind_rows(data2_processed, avg_data)
@@ -367,7 +367,7 @@ n_terms_by_ideology <- data_terms_split %>%
 # ===========================================
 
 data_gdp <- data_terms_split %>%
-  select(Ideologi, `BNP vekstrate`) %>%
+  dplyr::select(Ideologi, `BNP vekstrate`) %>%
   mutate(`BNP vekstrate` = as.numeric(`BNP vekstrate`))
 
 gdp_stats <- data_gdp %>%

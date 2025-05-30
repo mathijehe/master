@@ -23,7 +23,8 @@ data <- list(bnp,data_regjering) %>%
   filter(year <= as.Date("2021-07-01")) %>% 
   drop_na() 
 
-# Anta data har: year, bnp, Regjering, ar
+
+#Juster årstall (1–4) og arvet år (0)
 data <- data |>
   arrange(year) |>
   mutate(
@@ -34,23 +35,30 @@ data <- data |>
 # Lag datasett for arvet BNP (year 0 = bnp året før skifte)
 arvet_data <- data |>
   filter(regjering_skifte) |>
-  transmute(
-    Regjering = lead(Regjering),  # Ny regjering
+  group_by(ny_regjering = lead(Regjering)) |>
+  summarise(
     ar_justert = 0,
-    bnp = bnp
-  )
-
+    annual_growth = (prod(1 + bnp / 100, na.rm = TRUE)^(4 / n()) - 1) * 100
+  ) |>
+  rename(Regjering = ny_regjering) |>
+  filter(!is.na(Regjering))
 arvet_data <- arvet_data |>
   filter(!is.na(Regjering))
-# Kombiner med originaldata
-data_justert <- data |>
-  dplyr::select(Regjering, ar_justert, bnp) |>
-  bind_rows(arvet_data)
 
-# Oppsummer til gjennomsnitt per år og regjering
-data_summary <- data_justert |>
+#beregn årlig vekst 
+data_justert <- data |>
+  filter(ar_justert %in% 1:4) |>
   group_by(Regjering, ar_justert) |>
-  summarise(mean_bnp = mean(bnp, na.rm = TRUE), .groups = "drop")
+  summarise(
+    annual_growth = (prod(1 + bnp / 100, na.rm = TRUE)^(4 / n()) - 1) * 100,
+    .groups = "drop"
+  )
+
+
+# Kombiner med originaldata
+data_summary <- bind_rows(data_justert, arvet_data)
+
+
 
 # Konverter ar_justert til faktor med riktig rekkefølge og etiketter
 data_summary$ar_justert <- factor(
@@ -59,15 +67,15 @@ data_summary$ar_justert <- factor(
   labels = c("Arvet", "1", "2", "3", "4")
 )
 
-# Definer posisjon for søylene manuelt
 data_summary <- data_summary |>
   mutate(
     base_x = as.numeric(ar_justert),
     x_pos = ifelse(Regjering == "Høyre", base_x - 0.15, base_x + 0.15)
   )
 
+
 # Plot
-ggplot(data_summary, aes(x = x_pos, y = mean_bnp, fill = Regjering)) +
+ggplot(data_summary, aes(x = x_pos, y = annual_growth, fill = Regjering)) +
   geom_col(width = 0.3, color = "black") +
   scale_x_continuous(
     breaks = 1:5,
@@ -84,11 +92,10 @@ ggplot(data_summary, aes(x = x_pos, y = mean_bnp, fill = Regjering)) +
     panel.border = element_blank(),
     axis.line = element_line(),
     axis.text.x = element_text(angle = 0, hjust = 0.5),
-    legend.position = "none",
     panel.grid.major.x = element_blank(),
-    panel.grid.major.y = element_line(color = "grey80", linetype = "dashed")
+    panel.grid.major.y = element_line(color = "grey80", linetype = "dashed"),
+    legend.background = element_rect(color = "black", fill = "white")
   )
-
 
 
 
@@ -217,7 +224,7 @@ resultater <- analyser_detrend_gap(data, kappa_values = c(Inf, 100, 67, 33))
 
 
 # Lag en pen tabell
-resultater |> 
+trend_tabell <- resultater |> 
   mutate(
     diff = round(diff, 3),
     se_diff = round(se_diff, 3),
@@ -247,7 +254,8 @@ resultater |>
     column_labels.font.weight = "bold"
   )
 
-
+# Lagre som PDF
+gtsave(trend_tabell, filename = "trend_tabell.pdf")
 
 
 
@@ -286,15 +294,17 @@ data_long <- data_trend |>
     names_to = "trend",
     values_to = "value"
   ) |>
-  mutate(trend = recode(trend,
-                        trend_inf = "κ = ∞",
-                        #trend_100 = "κ = 100",
-                        trend_67  = "κ = 67",
-                        trend_33  = "κ = 33"))
+  mutate(trend = case_when(
+    trend == "trend_inf" ~ "κ = ∞",
+    trend == "trend_67"  ~ "κ = 67",
+    trend == "trend_33"  ~ "κ = 33",
+    TRUE ~ trend
+  ))
 
 
 
-ggplot() +
+
+trend <- ggplot() +
   geom_line(data = data_trend, aes(x = year, y = bnp), color = "black", linewidth = 0.5, alpha = 0.6) +
   geom_line(data = data_long, aes(x = year, y = value, color = trend, linetype = trend), linewidth = 1) +
   scale_color_manual(values = c("κ = ∞" = "black", "κ = 100" = "green", "κ = 67" = "blue", "κ = 33" = "red")) +
@@ -314,7 +324,19 @@ ggplot() +
     legend.position = "right"  # evt. "top", "bottom", "left", "none"
   )
 
+ggsave(
+  filename = "trend_figur.png",   # navn på filen
+  plot = trend,                   # figurobjektet ditt
+  width = 8,                      # bredde i inches
+  height = 6,                     # høyde i inches
+  dpi = 600                       # oppløsning (600 = høy kvalitet for trykk)
+)
 
+
+
+
+# Nå kan du sette fonten eksplisitt i ggplot
+theme(text = element_text(family = "Arial Unicode MS"))  # Eller annen font som støtter Unicode
 
 
 

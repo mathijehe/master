@@ -8,6 +8,9 @@ library(broom)
 library(gt)
 library(purrr)
 library(lubridate)
+library(tseries)
+library(car)
+library(webshot2)
 
 
 # === Data ===
@@ -480,7 +483,8 @@ gt_tab <- tabell_clean %>%
 gt_tab
 
 
-
+# Lagre som PDF
+gtsave(gt_tab, filename = "tabell6.pdf")
 
 
 

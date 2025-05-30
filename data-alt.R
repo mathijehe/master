@@ -1,4 +1,5 @@
 library(readxl)
+library(tseries)
 
 
 # data
@@ -35,8 +36,8 @@ ravarepriser <- ravarepriser %>%
     .groups = "drop"
   ) %>% 
   mutate(
-    oil = log(oil) - log(lag(oil, 1)),
-    index = log(index) - log(lag(index, 1)) 
+    oil = 100 * (oil - lag(oil)) / lag(oil),
+    index = 100 * (index - lag(index)) / lag(index)
   ) %>%  
   drop_na()
 
@@ -61,8 +62,7 @@ kpi <-  kpi %>%
     kpi = mean(kpi, na.rm = TRUE),  # Quarterly average
     .groups = "drop"
   ) %>% 
-  mutate(kpi = log(kpi) - log(lag(kpi, 1))) %>% 
-  mutate(kpi = c( NA,diff(kpi))) %>% 
+  mutate(kpi = 100 * (kpi - lag(kpi)) / lag(kpi)) %>%  
   drop_na()
 
 
@@ -94,7 +94,7 @@ bnp_int <- bnp_int %>%
 
 var_data <- bnp_int %>%
   dplyr::select(Belgium, Denmark, France, Germany, 
-                 Netherlands, Sweden, 
+                Netherlands, Sweden, 
                 `United Kingdom`, `United States`) %>%
   drop_na()
 
@@ -171,7 +171,7 @@ styringsrente3 <- styringsrente3 %>%
     rente = mean(rente, na.rm = TRUE),  # Gjennomsnitt per kvartal
     .groups = "drop"
   ) %>% 
-  mutate(rente = rente - lag(rente, 1)) %>% 
+  mutate(rente = rente - lag(rente, 1)) %>%
   drop_na()
 
 
@@ -238,32 +238,4 @@ data_regjering <- data_regjering %>%
 
 
 
-
-
-
-
-
-
-#########
-#bnp_tot <- read_excel("~/Downloads/09190_20250506-153032.xlsx")
-
-#bnp <- bnp_tot %>% 
-  #dplyr::select("year"="...2", "bnp"="...3") %>% 
-  #arrange(year) %>% 
-  #mutate(
-   # year = str_replace(year, "K1", "-01-01"),
-    #year = str_replace(year, "K2", "-04-01"),
-    #year = str_replace(year, "K3", "-07-01"),
-    #year = str_replace(year, "K4", "-10-01"),
-    #year = ymd(year)  # Konverterer til datoformat
-  #) %>% 
-  #drop_na() %>% 
-  #slice(2:n()) %>% 
-  #mutate(bnp = as.numeric(bnp))
-  
-
-
-
-
-
-
+adf.test(kpi$kpi)

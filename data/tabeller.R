@@ -65,10 +65,7 @@ gt(deskriptiv_tabell) %>%
 
 data5 <- list(bnp, bnp_int,finans,kpi,ravarepriser,data_regjering,
               quarterly_prod,styringsrente3, forvent) %>%
-  reduce(full_join, by = "year")
-
-
-data5 <- data5 %>% 
+  reduce(full_join, by = "year") %>% 
   arrange(year) %>% 
   filter(year >= as.Date("1978-04-01") & year <= as.Date("2021-07-01"))
 
@@ -123,9 +120,9 @@ recode_navn <- c(
   "bnp" = "BNP-vekst",
   "oil" = "Oljepris",
   "intl_bnp_growth" = "Internasjonal vekst",
-  "finans" = "Offentlig konsum",
+  "finans" = "Offentlig utgifter",
   "rente" = "Renteendring",
-  "prod" = "Produktivitets vekst",
+  "prod" = "Produktivitetsvekst",
   "trend" = "Forventningsendring",
   "kpi" = "KPI-vekst",
   "index" = "Råvarepris-vekst"
@@ -135,7 +132,18 @@ recode_navn <- c(
 
 # === 2. Gjør rekkefølge og oversett samtidig ===
 deskriptiv_tabell <- deskriptiv_tabell %>%
-  mutate(Variabel = recode(Variabel, !!!recode_navn)) %>%
+  mutate(
+    Variabel = dplyr::recode(Variabel,
+                      "bnp" = "BNP-vekst",
+                      "oil" = "Oljepris",
+                      "intl_bnp_growth" = "Internasjonal vekst",
+                      "finans" = "Offentlig utgifter",
+                      "rente" = "Renteendring",
+                      "prod" = "Produktivitetsvekst",
+                      "trend" = "Forventningsendring",
+                      "kpi" = "KPI-vekst",
+                      "index" = "Råvarepris-vekst")
+  ) %>%
   mutate(Variabel = factor(Variabel, levels = ønsket_rekkefølge)) %>%
   arrange(Variabel)
   
@@ -143,7 +151,7 @@ deskriptiv_tabell <- deskriptiv_tabell %>%
 
 
 # === Vis tabellen pent med gt() ===
-gt(deskriptiv_tabell) %>%
+deskriptiv_tabell <- gt(deskriptiv_tabell) %>%
   #tab_header(title = md("**Deskriptiv statistikk**")) %>%
   cols_label(
     Variabel = "Variabel",
@@ -170,13 +178,14 @@ gt(deskriptiv_tabell) %>%
     table_body.hlines.width = px(1)        # Kontroll på linjene (valgfritt)
   )
 
-
+# Lagre som PDF
+gtsave(deskriptiv_tabell, filename = "deskriptiv_tabell.pdf")
 
 
 #vekt tabell
-vekter %>%
+vekter <- vekter %>%
   mutate(
-    Land = recode(Land,
+    Land = dplyr::recode(Land,
                   "United Kingdom" = "Storbritannia",
                   "Germany" = "Tyskland",
                   "Netherlands" = "Nederland",
@@ -193,7 +202,8 @@ vekter %>%
   fmt_number(columns = c(Gjennomsnitt), decimals = 0) %>% 
   fmt_number(columns = c(Vekt), decimals = 2)
   
-
+# Lagre som PDF
+gtsave(vekter, filename = "vekter_tabell.pdf")
 
 
 
@@ -224,7 +234,7 @@ legend("topright", legend = c("BNP-vekst", "κ = ∞", "κ = 100", "κ = 67", "�
 #####
 
 
-data1 <- list(bnp,data_regjering %>%
+data1 <- list(bnp,data_regjering) %>%
   reduce(full_join, by = "year") %>% 
   drop_na()
 
@@ -284,3 +294,68 @@ resultater %>%
     `S–K gap (trendjustert)` = "S–K gap"
   ) %>%
   tab_options(table.font.size = 12)
+
+
+
+
+
+library(corrplot)
+
+# === Velg relevante numeriske variabler ===
+data_korr <- data2 %>%
+  dplyr::select(bnp, oil_shock, intl_bnp_growth_shock, finans_shock, prod_shock)
+
+# === Fjern NA ===
+data_korr_clean <- na.omit(data_korr)
+
+# === Beregn korrelasjonsmatrise ===
+cor_matrix <- cor(data_korr_clean)
+
+# === Vis som tall (valgfritt) ===
+print(round(cor_matrix, 2))
+
+
+corrplot(cor_matrix, method = "color", 
+         type = "upper", 
+         addCoef.col = "black",  # Vis tall
+         tl.col = "black",       # Fargetekst
+         tl.cex = 0.8,           # Tekststørrelse
+         number.cex = 0.7,       # Tallstørrelse
+         col = colorRampPalette(c("red", "white", "blue"))(200))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# --- Lag navn for tydelighet
+shock_name <- paste0(x, "_shock")
+
+# --- Residualplot over tid
+plot(
+  shock_series, type = "l", col = "darkblue",
+  main = paste("Tidsgraf for", shock_name),
+  ylab = "Residual (sjokk)", xlab = "Observasjon"
+)
+abline(h = 0, lty = 2, col = "gray")
+
+# --- Histogram
+hist(shock_series,
+     main = paste("Histogram av", shock_name),
+     col = "lightblue", border = "white",
+     xlab = "Residualverdi")
+
+# --- Beskrivende statistikk
+cat("=== Statistikk for", shock_name, "===\n")
+cat("Gjennomsnitt:", round(mean(shock_series), 4), "\n")
+cat("St.avvik:", round(sd(shock_series), 4), "\n")
+cat("Min:", round(min(shock_series), 4), "\n")
+cat("Maks:", round(max(shock_series), 4), "\n\n")
