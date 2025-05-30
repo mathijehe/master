@@ -320,7 +320,6 @@ data_clean <- data_clean %>%
     Ideologi        = if_else(Tidsperiode == "1997K4", "Konservativ", Ideologi)
   )
 
-
 # ===========================================
 # STEP 3: Identify Recession Quarters
 # ===========================================
@@ -330,16 +329,27 @@ data_clean <- data_clean %>%
   mutate(Recession = ifelse(lag(`BNP vekstrate`, 1) < 0 & `BNP vekstrate` < 0, 1, 0))
 
 # ===========================================
-# STEP 4: Compute Totals & Term Info (Adjusted to Years)
+# STEP 4: Cap Terms at Max 16 Quarters
 # ===========================================
 
-total_quarters_by_ideology <- data_clean %>%
-  group_by(Ideologi) %>%
-  summarise(Total_Quarters = n())
+data_terms_split <- data_clean %>%
+  arrange(Statsminister, Tidsperiode) %>%
+  group_by(Statsminister) %>%
+  mutate(
+    quarter_index = row_number(),
+    pseudo_term = (quarter_index - 1) %/% 16 + 1
+  ) %>%
+  ungroup() %>%
+  mutate(
+    Term_ID = paste(Statsminister, pseudo_term, sep = "_")
+  )
 
-n_terms_by_ideology <- data_clean %>%
-  group_by(Ideologi, Statsminister) %>%
-  summarise(Term_Length = n(), .groups = "drop") %>%
+n_terms_by_ideology <- data_terms_split %>%
+  group_by(Ideologi, Term_ID) %>%
+  summarise(
+    Term_Length = n(),
+    .groups = "drop"
+  ) %>%
   group_by(Ideologi) %>%
   summarise(
     Number_of_Terms = n(),
@@ -347,10 +357,10 @@ n_terms_by_ideology <- data_clean %>%
   )
 
 # ===========================================
-# STEP 5: Compute GDP Statistics (Updated to use data_clean)
+# STEP 5: Compute GDP Statistics
 # ===========================================
 
-data_gdp <- data_clean %>%
+data_gdp <- data_terms_split %>%
   select(Ideologi, `BNP vekstrate`) %>%
   mutate(`BNP vekstrate` = as.numeric(`BNP vekstrate`))
 
@@ -374,7 +384,7 @@ gdp_stats <- gdp_stats %>%
 # STEP 6.1: Compute Recession Share
 # ===========================================
 
-recession_stats <- data_clean %>%
+recession_stats <- data_terms_split %>%
   group_by(Ideologi) %>%
   summarise(
     Total_Recession_Quarters = sum(Recession, na.rm = TRUE),
@@ -383,32 +393,32 @@ recession_stats <- data_clean %>%
   ) %>%
   left_join(n_terms_by_ideology, by = "Ideologi") %>%
   mutate(
-    Average_Recession_Quarters_per_4year = Recession_Share * 4,
-    Average_Recession_Quarters_per_term  = Recession_Share * Average_Term_Length
+    Average_Recession_Quarters_per_4year = Recession_Share * 16,
+    Average_Recession_Quarters_per_term  = Recession_Share * Average_Term_Length * 4
   )
 
 # ===========================================
-# STEP 6.2: Classical SE for quarterly recession
+# STEP 6.2: Classical SE for Recession Share
 # ===========================================
 
-recession_se <- data_clean %>%
+recession_se <- data_terms_split %>%
   group_by(Ideologi) %>%
   summarise(
-    SE_Recession = sd(Recession, na.rm = TRUE) / sqrt(n_distinct(Statsminister))
+    SE_Recession = sd(Recession, na.rm = TRUE) / sqrt(n_distinct(Term_ID))
   )
 
 # ===========================================
 # STEP 6.3: Newey-West SEs
 # ===========================================
 
-nw_se_recession <- data_clean %>%
+nw_se_recession <- data_terms_split %>%
   group_by(Ideologi) %>%
   summarise(
     NW_SE_Recession = sqrt(diag(vcovHAC(lm(Recession ~ 1, data = cur_data()))))[1]
   )
 
-term_data <- data_clean %>%
-  group_by(Ideologi, Statsminister) %>%
+term_data <- data_terms_split %>%
+  group_by(Ideologi, Term_ID) %>%
   summarise(Recession_Quarters = sum(Recession, na.rm = TRUE), .groups = "drop")
 
 nw_se_recession_term <- term_data %>%
@@ -418,7 +428,7 @@ nw_se_recession_term <- term_data %>%
   )
 
 # ===========================================
-# STEP 6.4: Merge everything
+# STEP 6.4: Merge Recession Statistics
 # ===========================================
 
 recession_stats <- recession_stats %>%
@@ -532,7 +542,7 @@ table_1_final <- data.frame(
 )
 
 # ===========================================
-# STEP 11: Plot
+# STEP 11: Plot Table
 # ===========================================
 
 table_1_final %>%
@@ -562,20 +572,12 @@ table_1_final %>%
   )
 
 
-t_stat_recession_4year_nw
-
-diff_recession_4year
-se_diff_recession_4year_nw
-
-diff_recession_term
-se_diff_recession_term_nw
-
 # --------------------------------------------
 # Inspect intermediate values like Blinder & Watson
 # --------------------------------------------
 
-# Step A: Compute recession share (frequency)
-recession_check <- data_clean %>%
+# Step A: Compute recession share and intermediate term-based metrics
+recession_check <- data_terms_split %>%
   group_by(Ideologi) %>%
   summarise(
     Total_Quarters = n(),
@@ -584,13 +586,11 @@ recession_check <- data_clean %>%
   left_join(n_terms_by_ideology, by = "Ideologi") %>%
   mutate(
     Recession_Share = Total_Recession_Quarters / Total_Quarters,
-    Recession_per_term_check = Recession_Share * Average_Term_Length
+    Recession_per_term_check = Recession_Share * Average_Term_Length * 4  # Convert years to quarters
   )
 
 # Step B: Display nicely
 print(recession_check)
-
-
 
 library(lmtest)
 library(sandwich)
@@ -645,7 +645,37 @@ diagnostic_table <- data.frame(
 print(diagnostic_table)
 
 
+# Load sandwich package if not already loaded
+library(sandwich)
 
+# Example for the GDP growth model (Sosialistisk)
+gdp_model_sos <- lm(`BNP vekstrate` ~ 1, data = filter(data_terms_split, Ideologi == "Sosialistisk"))
+bw_gdp_sos <- bwNeweyWest(gdp_model_sos)
+cat("Newey-West lags used for Sosialistisk GDP:", bw_gdp_sos, "\n")
+
+# Example for the GDP growth model (Konservativ)
+gdp_model_kon <- lm(`BNP vekstrate` ~ 1, data = filter(data_terms_split, Ideologi == "Konservativ"))
+bw_gdp_kon <- bwNeweyWest(gdp_model_kon)
+cat("Newey-West lags used for Konservativ GDP:", bw_gdp_kon, "\n")
+
+# Example for recession share (Sosialistisk)
+rec_model_sos <- lm(Recession ~ 1, data = filter(data_terms_split, Ideologi == "Sosialistisk"))
+bw_rec_sos <- bwNeweyWest(rec_model_sos)
+cat("Newey-West lags used for Sosialistisk Recession:", bw_rec_sos, "\n")
+
+# Example for recession share (Konservativ)
+rec_model_kon <- lm(Recession ~ 1, data = filter(data_terms_split, Ideologi == "Konservativ"))
+bw_rec_kon <- bwNeweyWest(rec_model_kon)
+cat("Newey-West lags used for Konservativ Recession:", bw_rec_kon, "\n")
+
+
+getAnywhere("bwNeweyWest")
+
+
+
+getAnywhere("biweight_kernel")
+
+biweight_kernel
 
 
 
